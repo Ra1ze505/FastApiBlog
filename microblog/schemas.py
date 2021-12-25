@@ -29,3 +29,9 @@ class PostCreate(PostBase):
 
     class Config:
         orm_mode = True
+
+class PostView(PostList):
+
+
+    class Config:
+        orm_mode = True
