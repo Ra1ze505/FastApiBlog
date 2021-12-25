@@ -1,30 +1,24 @@
-import sys
 from typing import List
 
-from fastapi import FastAPI
-from sqlalchemy.orm import sessionmaker, scoped_session
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
-sys.path = ['', '..'] + sys.path[1:]
+from core.utils import get_db
+from microblog.models import Post
+from microblog.schemas import PostList, PostView, PostCreate
 
-from core.db import engine
-from models import Post
-from schemas import PostCreate, PostList, PostView
-
-app = FastAPI()
-
-session = sessionmaker(bind=engine)
-current_session = scoped_session(session)
+router = APIRouter()
 
 
-@app.get('/', response_model=List[PostView])
-async def home():
-    posts = current_session.query(Post).order_by(Post.id).all()
+@router.get('/', response_model=List[PostView])
+async def home(db: Session = Depends(get_db)):
+    posts = db.query(Post).order_by(Post.id).all()
     return posts
 
 
-@app.post('/add', response_model=PostList)
-async def add_post(item: PostCreate):
+@router.post('/add', response_model=PostList)
+async def add_post(item: PostCreate, db: Session = Depends(get_db)):
     post = Post(**item.dict())
-    current_session.add(post)
-    current_session.commit()
+    db.add(post)
+    db.commit()
     return {**item.dict(), 'id': post.id}
