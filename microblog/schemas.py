@@ -2,6 +2,8 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
+from user.schemas import UserInPost
+
 
 class PostBase(BaseModel):
     title: str = ''
@@ -18,6 +20,7 @@ class PostParent(PostBase):
 class PostList(PostBase):
     id: Optional[int]
     date: Optional[datetime]
+    user: UserInPost
 
 
 class PostSingle(PostList):
@@ -26,12 +29,6 @@ class PostSingle(PostList):
 
 class PostCreate(PostBase):
     parent_id: Optional[int] = None
-
-    class Config:
-        orm_mode = True
-
-
-class PostView(PostList):
 
     class Config:
         orm_mode = True

@@ -1,3 +1,5 @@
+import uuid
+
 from passlib.context import CryptContext
 from pydantic import BaseModel, validator, EmailStr
 
@@ -39,3 +41,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: str = None
 
+
+class UserInPost(BaseModel):
+    id: str
+    username: str = None

@@ -5,6 +5,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 
 from core.settings import ACCESS_TOKEN_EXPIRE_MINUTES
+from user.models import User
 from user.schemas import UserView, UserRegister
 from user.service import create_user
 from user.auth import get_current_user, authenticate_user, create_access_token
@@ -13,8 +14,7 @@ router = APIRouter()
 
 
 @router.get('', response_model=UserView)
-async def view(current_user: UserView = Depends(get_current_user)):
-    print(current_user)
+async def view(current_user: User = Depends(get_current_user)):
     return current_user
 
 

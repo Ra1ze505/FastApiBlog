@@ -18,7 +18,5 @@ async def get_user(username: str):
     query = users.select().where(users.c.username == username)
     user = await database.fetch_one(query)
     return user
-    # print(query)
-    # user = await database.
 
 
