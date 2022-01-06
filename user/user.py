@@ -20,7 +20,7 @@ async def view(current_user: User = Depends(get_current_user)):
 
 @router.post('/register', response_model=UserView)
 async def register(user: UserRegister):
-    result = await creacte_user(user)
+    result = await create_user(user)
     return result
 
 
