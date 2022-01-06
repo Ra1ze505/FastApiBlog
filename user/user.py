@@ -1,14 +1,11 @@
-from datetime import timedelta
-
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
 
-from core.settings import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 from user.models import User
-from user.schemas import UserView, UserRegister
+from user.schemas import UserView, UserRegister, Token
 from user.service import create_user
-from user.auth import get_current_user, authenticate_user, create_access_token, create_refresh_token
+from user.auth import get_current_user, authenticate_user, get_username_refresh_token, get_access_refresh_token
 
 router = APIRouter()
 
@@ -24,13 +21,18 @@ async def register(user: UserRegister):
     return result
 
 
-@router.post("/token")
+@router.post("/token", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await authenticate_user(form_data.username, form_data.password)
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    access_token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
-    refresh_token = create_refresh_token(data={"sub": user.username}, refresh_delta=refresh_token_expires)
+    access_token, refresh_token = await get_access_refresh_token(user.username)
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+
+@router.post('/refresh', response_model=Token)
+async def refresh(refresh_token: str):
+    username = await get_username_refresh_token(refresh_token)
+    access_token, refresh_token = await get_access_refresh_token(username)
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
 
 

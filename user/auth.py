@@ -5,12 +5,18 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from starlette import status
 
-from core.settings import SECRET_KEY, ALGORITHM
+from core.settings import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 from user.schemas import UserInDB, pwd_context, TokenData
 from user.service import get_user
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/token")
+
+CREDENTIALS_EXCEPTION = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+)
 
 
 async def authenticate_user(username: str, password: str):
@@ -47,21 +53,36 @@ def create_refresh_token(data: dict, refresh_delta: timedelta = None):
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         token_type: str = payload.get("type")
         if username is None or token_type != "access":
-            raise credentials_exception
+            raise CREDENTIALS_EXCEPTION
         token_data = TokenData(username=username)
     except JWTError:
-        raise credentials_exception
+        raise CREDENTIALS_EXCEPTION
     user = await get_user(username=token_data.username)
     if user is None:
-        raise credentials_exception
+        raise CREDENTIALS_EXCEPTION
     return UserInDB(**user)
+
+
+async def get_username_refresh_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get('sub')
+        token_type: str = payload.get('type')
+        if username is None or token_type != 'refresh':
+            raise CREDENTIALS_EXCEPTION
+    except JWTError:
+        raise CREDENTIALS_EXCEPTION
+    return username
+
+
+async def get_access_refresh_token(username: str):
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    access_token = create_access_token(data={"sub": username}, expires_delta=access_token_expires)
+    refresh_token = create_refresh_token(data={"sub": username}, refresh_delta=refresh_token_expires)
+    return access_token, refresh_token
